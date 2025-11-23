@@ -1,5 +1,8 @@
 const app = document.getElementById('app');
 
+// Color palette for players (index-based)
+const PLAYER_COLORS = ['#FF6B6B', '#4D96FF', '#FFD166', '#6BCB77', '#9B5DE5'];
+
 // Load saved players from localStorage so restart remembers names
 const savedPlayers = (() => {
     try {
@@ -61,6 +64,7 @@ function renderPlayerInputs() {
         const playerInputDiv = document.createElement('div');
         playerInputDiv.className = 'player-input';
         playerInputDiv.innerHTML = `
+            <div class="player-swatch" title="Player ${i + 1}" style="background:${PLAYER_COLORS[i % PLAYER_COLORS.length]}"></div>
             <input type="text" placeholder="Player ${i + 1}" value="${player || ''}">
             <button class="remove-player" data-index="${i}">X</button>
         `;
@@ -137,7 +141,7 @@ function renderCards() {
                 <div class="card-back">
                     <p>${question}</p>
                     <textarea id="answer-input" rows="3"></textarea>
-                    <button id="submit-answer" disabled>Submit</button>
+                    <button id="submit-answer" style="margin-top: 10px;" disabled>Submit</button>
                 </div>
             </div>
         </div>
@@ -150,6 +154,16 @@ function renderCards() {
     const cardFront = cardContainer.querySelector('.card-front');
     const submitButton = cardContainer.querySelector('#submit-answer');
     const answerInput = cardContainer.querySelector('#answer-input');
+
+    // Color the card border/background for this player
+    const playerColor = PLAYER_COLORS[state.currentPlayerIndex % PLAYER_COLORS.length];
+    if (card) {
+        card.style.borderColor = playerColor;
+        const front = card.querySelector('.card-front');
+        const back = card.querySelector('.card-back');
+        if (front) front.style.boxShadow = `0 6px 18px ${playerColor}33`;
+        if (back) back.style.boxShadow = `0 6px 18px ${playerColor}33`;
+    }
 
     // Attach click to the front face specifically so tapping reliably flips the card.
     cardFront.addEventListener('click', (e) => {
@@ -183,9 +197,10 @@ function renderDiscussion() {
 
     let playerAnswersHtml = '';
     for (let i = 0; i < state.players.length; i++) {
+        const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
         playerAnswersHtml += `
-            <div class="player-answer">
-                <p><strong>${state.players[i]}:</strong></p>
+            <div class="player-answer" style="border-left:6px solid ${color}; padding-left:0.75rem;">
+                <p><strong style="color:${color}">${state.players[i]}:</strong></p>
                 <p>${state.answers[i]}</p>
             </div>
         `;
@@ -216,7 +231,7 @@ function renderReveal() {
 
     revealDiv.innerHTML = `
         <h1>The Impostor was...</h1>
-        <h2>${state.impostor}</h2>
+        <h2 style="color:${PLAYER_COLORS[impostorIndex % PLAYER_COLORS.length]}">${state.impostor}</h2>
         <div class="impostor-details">
             <p><strong>Impostor's Question:</strong> ${state.questionPair.questionImposter}</p>
             <p><strong>Impostor's Answer:</strong> ${impostorAnswer}</p>
