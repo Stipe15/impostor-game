@@ -29,6 +29,8 @@ body {
     align-items: center;
     justify-content: center;
     min-height: calc(100vh - 2rem);
+    /* Leave space at the bottom so fixed footer doesn't cover interactive controls */
+    padding-bottom: 4rem;
 }
 
 .setup-screen {
@@ -259,12 +261,16 @@ button {
     max-width: 92%;
     border-radius: 6px;
     z-index: 1000;
+    /* allow clicks to pass through the footer so buttons under it remain clickable */
+    pointer-events: none;
 }
 
 #footer a {
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 600;
+    /* make the link clickable even though the footer container ignores pointer events */
+    pointer-events: auto;
 }
 
 #footer a:hover {
