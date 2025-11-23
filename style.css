@@ -244,6 +244,37 @@ button {
     }
 }
 
+/* Footer credit */
+#footer {
+    position: fixed;
+    left: 50%;
+    bottom: 0.6rem;
+    transform: translateX(-50%);
+    background: transparent;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    display: inline-block;
+    text-align: center;
+    max-width: 92%;
+    border-radius: 6px;
+    z-index: 1000;
+}
+
+#footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+#footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 360px) {
+    #footer { font-size: 0.75rem; padding: 0.2rem 0.4rem; }
+}
+
 
 
 
