@@ -1,0 +1,9 @@
+{
+  "name": "Impostor Questions",
+  "short_name": "Impostor",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": []
+}

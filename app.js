@@ -1,7 +1,17 @@
 const app = document.getElementById('app');
 
+// Load saved players from localStorage so restart remembers names
+const savedPlayers = (() => {
+    try {
+        const raw = localStorage.getItem('impostor_players');
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+})();
+
 const state = {
-    players: ['', '', ''],
+    players: savedPlayers || ['', '', ''],
     questionPair: null,
     impostor: null,
     answers: [],
@@ -56,6 +66,8 @@ function renderPlayerInputs() {
         `;
         playerInputDiv.querySelector('input').addEventListener('change', (e) => {
             state.players[i] = e.target.value;
+            // persist players so restart remembers them
+            try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
             updateStartButton();
         });
         playerInputDiv.querySelector('.remove-player').addEventListener('click', (e) => {
@@ -70,12 +82,14 @@ function renderPlayerInputs() {
 function addPlayer() {
     if (state.players.length < 5) {
         state.players.push('');
+        try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
         render();
     }
 }
 
 function removePlayer(index) {
     state.players.splice(index, 1);
+    try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
     render();
 }
 
@@ -99,6 +113,8 @@ function startGame() {
     state.answers = answers;
     state.currentPage = 'cards';
     state.currentPlayerIndex = 0;
+    // ensure players persisted
+    try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
     render();
 }
 
@@ -121,20 +137,34 @@ function renderCards() {
                 <div class="card-back">
                     <p>${question}</p>
                     <textarea id="answer-input" rows="3"></textarea>
-                    <button id="submit-answer">Submit</button>
+                    <button id="submit-answer" disabled>Submit</button>
                 </div>
             </div>
         </div>
     `;
     app.appendChild(cardContainer);
 
-    const card = document.querySelector('.card');
-    card.addEventListener('click', () => {
-        card.classList.add('flipped');
-    });
+    // Scope queries to the newly created container to avoid selecting unrelated nodes
+    const card = cardContainer.querySelector('.card');
+    const cardInner = cardContainer.querySelector('.card-inner');
+    const cardFront = cardContainer.querySelector('.card-front');
+    const submitButton = cardContainer.querySelector('#submit-answer');
+    const answerInput = cardContainer.querySelector('#answer-input');
 
-    document.getElementById('submit-answer').addEventListener('click', () => {
-        const answer = document.getElementById('answer-input').value;
+    // Attach click to the front face specifically so tapping reliably flips the card.
+    cardFront.addEventListener('click', (e) => {
+        // Ignore clicks that target input controls (defensive)
+        if (e.target.closest('#submit-answer') || e.target.closest('#answer-input')) return;
+        // Add flipped class to the card (CSS uses `.card.flipped .card-inner`)
+        card.classList.add('flipped');
+        setTimeout(() => {
+            submitButton.disabled = false;
+            answerInput.focus();
+        }, 600); // Duration of the flip animation
+    }, { once: true }); // Only allow flipping once per card view
+
+    submitButton.addEventListener('click', () => {
+        const answer = answerInput.value;
         state.answers[state.currentPlayerIndex] = answer;
 
         if (state.currentPlayerIndex < state.players.length - 1) {
@@ -196,8 +226,9 @@ function renderReveal() {
     app.appendChild(revealDiv);
 
     document.getElementById('restart-game').addEventListener('click', () => {
+        // Keep players (so restart remembers names), reset game-specific state
         Object.assign(state, {
-            players: [],
+            // keep `players` as-is (persisted in localStorage)
             questionPair: null,
             impostor: null,
             answers: [],
@@ -224,13 +255,30 @@ function setInitialTheme() {
     render();
 }
 
-themeToggle.addEventListener('click', () => {
-    if (body.dataset.theme === 'dark') {
-        body.dataset.theme = 'light';
-    } else {
-        body.dataset.theme = 'dark';
-    }
-});
+if (themeToggle) {
+    // Make toggle accessible
+    themeToggle.setAttribute('role', 'switch');
+    themeToggle.setAttribute('aria-checked', body.dataset.theme === 'dark');
+    themeToggle.addEventListener('click', () => {
+        if (body.dataset.theme === 'dark') {
+            body.dataset.theme = 'light';
+            themeToggle.setAttribute('aria-checked', 'false');
+        } else {
+            body.dataset.theme = 'dark';
+            themeToggle.setAttribute('aria-checked', 'true');
+        }
+    });
+}
+
+// Register a simple service worker for offline capability
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+            // registration failed — ignore silently
+            console.warn('SW registration failed:', err);
+        });
+    });
+}
 
 setInitialTheme();
 
