@@ -1,7 +1,18 @@
 const app = document.getElementById('app');
 
-// Color palette for players (index-based)
-const PLAYER_COLORS = ['#FF6B6B', '#4D96FF', '#FFD166', '#6BCB77', '#9B5DE5'];
+// Color palette for players (index-based) — expanded to support up to 10 players
+const PLAYER_COLORS = [
+    '#FF6B6B', // red
+    '#4D96FF', // blue
+    '#FFD166', // yellow
+    '#6BCB77', // green
+    '#9B5DE5', // purple
+    '#FF8AB8', // pink
+    '#00C2A8', // teal
+    '#FFB86B', // orange
+    '#6A5ACD', // slate
+    '#2ECC71'  // emerald
+];
 
 // Load saved players from localStorage so restart remembers names
 const savedPlayers = (() => {
@@ -23,6 +34,9 @@ const state = {
 };
 
 function render() {
+    // Show/hide chrome (theme toggle + footer) depending on current page
+    updateChromeVisibility();
+
     app.innerHTML = '';
     switch (state.currentPage) {
         case 'setup':
@@ -31,6 +45,9 @@ function render() {
         case 'cards':
             renderCards();
             break;
+        case 'revealPrompt':
+            renderRevealPrompt();
+            break;
         case 'discussion':
             renderDiscussion();
             break;
@@ -38,6 +55,14 @@ function render() {
             renderReveal();
             break;
     }
+}
+
+function updateChromeVisibility() {
+    const themeToggleEl = document.getElementById('theme-toggle');
+    const footerEl = document.getElementById('footer');
+    const showChrome = state.currentPage === 'setup';
+    if (themeToggleEl) themeToggleEl.style.display = showChrome ? '' : 'none';
+    if (footerEl) footerEl.style.display = showChrome ? '' : 'none';
 }
 
 function renderSetup() {
@@ -68,13 +93,22 @@ function renderPlayerInputs() {
             <input type="text" placeholder="Player ${i + 1}" value="${player || ''}">
             <button class="remove-player" data-index="${i}">X</button>
         `;
-        playerInputDiv.querySelector('input').addEventListener('change', (e) => {
+        const inputEl = playerInputDiv.querySelector('input');
+        const removeBtn = playerInputDiv.querySelector('.remove-player');
+        inputEl.addEventListener('change', (e) => {
             state.players[i] = e.target.value;
             // persist players so restart remembers them
             try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
             updateStartButton();
         });
-        playerInputDiv.querySelector('.remove-player').addEventListener('click', (e) => {
+        // Disable remove when at minimum players
+        removeBtn.disabled = state.players.length <= 3;
+        removeBtn.addEventListener('click', (e) => {
+            // Only allow removing if there will still be at least 3 player slots
+            if (state.players.length <= 3) {
+                // small protective UX: don't remove below minimum
+                return;
+            }
             removePlayer(parseInt(e.target.dataset.index));
         });
         playerInputsDiv.appendChild(playerInputDiv);
@@ -84,7 +118,7 @@ function renderPlayerInputs() {
 }
 
 function addPlayer() {
-    if (state.players.length < 5) {
+    if (state.players.length < 10) {
         state.players.push('');
         try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
         render();
@@ -92,18 +126,19 @@ function addPlayer() {
 }
 
 function removePlayer(index) {
+    if (state.players.length <= 3) return;
     state.players.splice(index, 1);
     try { localStorage.setItem('impostor_players', JSON.stringify(state.players)); } catch (err) {}
     render();
 }
 
 function updateAddButton() {
-    document.getElementById('add-player').disabled = state.players.length >= 5;
+    document.getElementById('add-player').disabled = state.players.length >= 10;
 }
 
 function updateStartButton() {
     const filledPlayers = state.players.filter(p => p.trim() !== '').length;
-    document.getElementById('start-game').disabled = filledPlayers < 3 || filledPlayers > 5;
+    document.getElementById('start-game').disabled = filledPlayers < 3 || filledPlayers > 10;
 }
 
 function startGame() {
@@ -145,6 +180,9 @@ function renderCards() {
                 </div>
             </div>
         </div>
+        <div class="card-actions">
+            <button id="restart-turn" class="muted">Restart Round</button>
+        </div>
     `;
     app.appendChild(cardContainer);
 
@@ -185,10 +223,28 @@ function renderCards() {
             state.currentPlayerIndex++;
             render();
         } else {
-            state.currentPage = 'discussion';
+            // All players answered — show a prompt screen with a single "Reveal answers" button
+            state.currentPage = 'revealPrompt';
             render();
         }
     });
+
+    // Allow restarting the round from the card view (keeps players)
+    const restartTurn = cardContainer.querySelector('#restart-turn');
+    if (restartTurn) {
+        restartTurn.addEventListener('click', () => {
+            const ok = confirm('Restart round and reshuffle question/impostor?');
+            if (!ok) return;
+            Object.assign(state, {
+                questionPair: null,
+                impostor: null,
+                answers: [],
+                currentPage: 'setup',
+                currentPlayerIndex: 0,
+            });
+            render();
+        });
+    }
 }
 
 function renderDiscussion() {
@@ -218,6 +274,20 @@ function renderDiscussion() {
 
     document.getElementById('reveal-impostor').addEventListener('click', () => {
         state.currentPage = 'reveal';
+        render();
+    });
+}
+
+function renderRevealPrompt() {
+    const promptDiv = document.createElement('div');
+    promptDiv.className = 'reveal-prompt-screen';
+    promptDiv.innerHTML = `
+        <button id="reveal-answers">Reveal Answers</button>
+    `;
+    app.appendChild(promptDiv);
+
+    document.getElementById('reveal-answers').addEventListener('click', () => {
+        state.currentPage = 'discussion';
         render();
     });
 }
@@ -267,20 +337,30 @@ function setInitialTheme() {
     } else {
         body.dataset.theme = 'light';
     }
+    // Ensure the toggle shows the correct emoji and ARIA state.
+    if (themeToggle) {
+        themeToggle.setAttribute('role', 'switch');
+        themeToggle.setAttribute('aria-checked', body.dataset.theme === 'dark' ? 'true' : 'false');
+        // Per design: show sun emoji when in dark mode, moon when in light mode
+        themeToggle.textContent = body.dataset.theme === 'dark' ? '☀️' : '🌙';
+        themeToggle.title = body.dataset.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    }
     render();
 }
 
 if (themeToggle) {
-    // Make toggle accessible
-    themeToggle.setAttribute('role', 'switch');
-    themeToggle.setAttribute('aria-checked', body.dataset.theme === 'dark');
+    // Clicking toggles theme and updates emoji/ARIA/title
     themeToggle.addEventListener('click', () => {
         if (body.dataset.theme === 'dark') {
             body.dataset.theme = 'light';
             themeToggle.setAttribute('aria-checked', 'false');
+            themeToggle.textContent = '🌙';
+            themeToggle.title = 'Switch to dark theme';
         } else {
             body.dataset.theme = 'dark';
             themeToggle.setAttribute('aria-checked', 'true');
+            themeToggle.textContent = '☀️';
+            themeToggle.title = 'Switch to light theme';
         }
     });
 }

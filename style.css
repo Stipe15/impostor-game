@@ -4,11 +4,13 @@
     --background-color: #ffffff;
     --text-color: #212529;
     --card-background: #f8f9fa;
+    --button-color: #007bff;
 }
 
 [data-theme="dark"] {
     --primary-color: #6c757d;
     --secondary-color: #007bff;
+    --button-color: #007bff;
     --background-color: #212529;
     --text-color: #f8f9fa;
     --card-background: #343a40;
@@ -61,6 +63,7 @@ body {
 }
 
 .remove-player {
+    /* red when removable */
     background-color: #dc3545;
     color: white;
     border: none;
@@ -71,6 +74,14 @@ body {
     padding: 0;
     line-height: 25px;
     text-align: center;
+    transition: opacity 120ms, transform 120ms;
+}
+
+.remove-player:disabled {
+    /* gray and less prominent when removal is not allowed */
+    background-color: var(--secondary-color);
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 input[type="text"] {
@@ -169,6 +180,9 @@ textarea {
 button {
     padding: 0.75rem 1rem;
     font-size: 1rem;
+    background-color: var(--button-color);
+    color: white;
+    border: none;
 }
 
 #theme-toggle {
@@ -280,6 +294,83 @@ button {
 @media (max-width: 360px) {
     #footer { font-size: 0.75rem; padding: 0.2rem 0.4rem; }
 }
+
+/* Card action area (small, centered restart button) */
+.card-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.card-actions .muted {
+    background: transparent;
+    color: var(--button-color);
+    border: none;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.95;
+}
+
+.card-actions .muted:hover {
+    text-decoration: underline;
+    transform: none;
+}
+
+/* Reveal prompt (centered single button) */
+.reveal-prompt-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-height: calc(100vh - 4rem);
+    padding: 1rem;
+}
+
+.reveal-prompt-screen button {
+    padding: 0.9rem 1.2rem;
+    font-size: 1.05rem;
+    border-radius: 8px;
+    max-width: 320px;
+    width: 90%;
+}
+
+/* Theme toggle: transparent background with blue border */
+#theme-toggle {
+    background: transparent;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Light theme: blue border/text */
+body[data-theme="light"] #theme-toggle {
+    color: var(--button-color);
+    border: 2px solid var(--button-color);
+}
+body[data-theme="light"] #theme-toggle:hover {
+    background: rgba(0,123,255,0.04);
+}
+body[data-theme="light"] #theme-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.12);
+}
+
+/* Dark theme: gray border/text */
+body[data-theme="dark"] #theme-toggle {
+    color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+}
+body[data-theme="dark"] #theme-toggle:hover {
+    background: rgba(255,255,255,0.03);
+}
+body[data-theme="dark"] #theme-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108,117,125,0.14);
+}
+
 
 
 
